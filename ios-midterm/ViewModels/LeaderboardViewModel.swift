@@ -47,27 +47,21 @@ final class LeaderboardViewModel {
     }
 
     func deleteAllWins() {
-        let service = apiService
+        let toDelete = records      // snapshot current IDs from memory
+        records = []                // clear UI immediately – no waiting for network
+        guard !toDelete.isEmpty else { return }
+
         isLoading = true
-        service.fetchWins()
-            .flatMap { records -> AnyPublisher<Void, Error> in
-                guard !records.isEmpty else {
-                    return Just(()).setFailureType(to: Error.self).eraseToAnyPublisher()
-                }
-                return Publishers.MergeMany(records.map { service.deleteWin(id: $0.id) })
-                    .collect()
-                    .map { _ in () }
-                    .eraseToAnyPublisher()
-            }
+        let service = apiService
+        Publishers.MergeMany(toDelete.map { service.deleteWin(id: $0.id) })
+            .collect()
             .receive(on: DispatchQueue.main)
             .sink(receiveCompletion: { [weak self] completion in
                 self?.isLoading = false
                 if case .failure(let error) = completion {
                     self?.errorMessage = error.localizedDescription
                 }
-            }, receiveValue: { [weak self] _ in
-                self?.records = []
-            })
+            }, receiveValue: { _ in })
             .store(in: &cancellables)
     }
 }

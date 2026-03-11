@@ -5,6 +5,7 @@ final class LeaderboardViewController: UIViewController {
 
     private let viewModel: LeaderboardViewModel
     private var cancellables = Set<AnyCancellable>()
+    private var records: [WinRecord] = []
 
     private let tableView = UITableView()
     private let activityIndicator = UIActivityIndicatorView(style: .medium)
@@ -76,6 +77,7 @@ final class LeaderboardViewController: UIViewController {
     private func setupBindings() {
         viewModel.$records
             .sink { [weak self] records in
+                self?.records = records
                 self?.tableView.reloadData()
                 self?.emptyLabel.isHidden = !records.isEmpty
             }
@@ -109,12 +111,12 @@ final class LeaderboardViewController: UIViewController {
 extension LeaderboardViewController: UITableViewDataSource {
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        viewModel.records.count
+        records.count
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
-        let record = viewModel.records[indexPath.row]
+        let record = records[indexPath.row]
         let seconds = Double(record.timeMs) / 1000.0
         cell.textLabel?.text = "#\(indexPath.row + 1)  \(record.name) - \(String(format: "%.2f", seconds))s"
         cell.textLabel?.font = .monospacedDigitSystemFont(ofSize: 17, weight: .regular)
